@@ -19,7 +19,7 @@ discussions.
 
 [Layout Patterns for Semantic Annotation](layout-semantics)
 
-[MathJax ig Github Markdown tests](mjtest)
+[MathJax in Github Markdown tests](mjtest)
 
 [Semantic Annotation Mini-Language](semantics-mini)
 
