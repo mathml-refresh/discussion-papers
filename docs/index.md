@@ -23,4 +23,7 @@ discussions.
 
 [Semantic Annotation Mini-Language](semantics-mini)
 
+---
+
+[Git Source](https://github.com/mathml-refresh/discussion-papers)  
 
