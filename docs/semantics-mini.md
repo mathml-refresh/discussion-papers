@@ -78,11 +78,11 @@ semantic ::=
 
 literal  ::= [letters|digits|_|-]+
 selector ::= argref
-argref   ::= '#' NCName
+argref   ::= '$' NCName
 ```
 <!-- path | idref | ...
 path    ::= '$' [digit]+ | path/path
-idref   ::= '#' NCName
+idref   ::= '$' NCName
 ```
 -->
 [The syntactic details, and whether alternative selectors are needed, is up for debate.]
