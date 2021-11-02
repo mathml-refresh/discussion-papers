@@ -63,28 +63,35 @@ but do not determine it alone.
 <!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
 ## Proposal
 We propose an attribute, tentatively called "intent",
-which describes the semantic tree of a Presentation MathML fragment
+which describes the semantic intent of a Presentation MathML fragment
 using a simple prefix notation. This mechanism provides for recursively
-describing the operator and arguments, as well as ascribing a fixed semantics
+describing the operator and arguments, as well as ascribing a fixed intent
 to entire subtrees.  The main components are literals, for giving an explicit fixed
-"meaning", and selectors for referring to the semantic of a child node.
+"meaning", and selectors for referring to the intent of a child node.
 The mini-language is specified as follows:
 
 ```
-semantic ::=
+intent ::=
              selector
            | literal
-           | semantic '(' semantic [ ',' semantic ]* ')'
+           | intent '(' intent [ ',' intent ]* ')'
 
 literal  ::= [letters|digits|_|-]+
-selector ::= argref
+selector ::= argref | argpath
 argref   ::= '$' NCName
+argpath  ::= '$' [digit]+ [ '/' [digit]+ ]*
 ```
-<!-- path | idref | ...
-path    ::= '$' [digit]+ | path/path
-idref   ::= '$' NCName
-```
--->
+
+When computing the effective intent of the "current node" (where the intent attribute was given),
+the above patterns signify:
+* literal: a literal keyword (to be looked up in a to-be-specified dictionary),
+or a phrase to be spoken as-is (possibly translated, as needed).
+* selector: selects another node whose intent is used in-place-of or as part-of the computed intent.
+* argref: refers to the intent of another node,
+being the child of the current node with attribute `arg' having the given `NCName`
+(or possibly any node with the `NCName` as `id`).
+* argpath: refers to a descendant of the current node; a single component such as `$2` refers to the 2nd child; multiple components refer to grandchildren or deeper.
+
 [The syntactic details, and whether alternative selectors are needed, is up for debate.]
 
 The literals are intended to correspond to some mathematical concept
@@ -172,7 +179,7 @@ would be used for a composite symbol $x'$ which stands for the frobulator;
 the translation would simply be "frobulator".
 
 Given that notations can use literals, paths and ids to specify
-the semantics of the operator and arguments,
+the intents of the operator and arguments,
 there are several ways that a given expression could be annotated.
 The transpose could be
 ```
@@ -209,7 +216,7 @@ A binomial would be marked up as:
 ```
 This pattern covers Eulerian numbers, Jacobi and Legendre symbols.
 Conversely, it  still allows alternate notations for binomials while keeping the same
-semantics, since we can write:
+intent, since we can write:
 ```
 <msubsup intent="$op($n,$m)">
   <mi arg="op" intent="binomial">C</mi>
