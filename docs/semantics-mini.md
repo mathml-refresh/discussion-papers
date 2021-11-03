@@ -27,19 +27,21 @@ at least minimal semantic information to Presentation MathML to support accessib
 
 <!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
 ## Motivation
+Mathematical notations are ambiguous.
+Some notations are used for different purposes and perhaps should be spoken differently.
+In contrast, different communities occasionally express the same mathematical concept
+using different notations; perhaps they should be spoken the same.
 Consider the variety of purposes for which a superscript is employed.
 Most commonly, one writes $x^2$ or $x^n$ for powers;
 abstractly, power is applied to 2 arguments.
 But superscripts are also used for indexing, such as with tensors or matrices $\Phi^i$.
-Abstractly,  a different operation is applied the same 2 arguments,
-but in neither case is the implied operator obviously associated with either
-the base or superscript.
+Abstractly,  a different operation is applied the same 2 arguments;
+one needs to know the subject area or topic to know which operator is intended.
 
-Then there are cases where the superscript itself indicates which operator is used:
-$z^*$, $A^T$, $A^\dagger$.  Here the operators are conjugate, transpose and adjoint,
-respectively; in each case, the base is the single argument
-while the operator is implied by the superscript.
-Of course, sometimes these operations are written in functional notation,
+It gets worse: sometimes the superscript itself indicates the intended operator:
+$z^*$, $A^T$, $A^\dagger$, may signify conjugate, transpose and adjoint
+operations applied to the base of the subscript.
+Of course, these operations could also be written in functional notation,
 $\mathrm{conj}(z)$, $\mathrm{trans}(A)$, $\mathrm{adj}(A)$,
 so we ought not conflate the meaning "transpose of A"
 with the specific superscript notation that was used.
@@ -50,90 +52,88 @@ or perhaps "the frobulator".
 
 Another notational pattern is seen in the somewhat messy markup
 commonly used for a binomial coefficient $\binom{n}{m}$,
-having the arguments $n$ and $m$ are buried in the markup, stacked and wrapped in parentheses.
-The fact that an almost identical markup, possibly with different fences,
-is also used for Eulerian numbers, Legendre and Jacobi symbols, 
+having the arguments $n$ and $m$ are buried in the markup, stacked with either `mfrac` or `mtable`,
+and finally wrapped in parentheses.
+The fact that very similar markup is also used for Eulerian numbers, Legendre and Jacobi symbols, 
 and conversely, that other notations, such as $C^n_m$, are used for binomial coefficients,
-again suggests a benefit to decoupling the notation and meaning of the expression.
+suggest decoupling the notation and meaning of the expression.
 
-The common theme is that there are a collection of notational structures
-that are essential for understanding the meanings of mathematical expressions,
-but do not determine it alone.
+The common theme is the disambiguation of seemingly identical notations
+as well as variety of patterns that must be recognized by a accessibility agent
+which may want to use some combination of the mathematical intent of an expression
+as well as the actual notation employed in order to generate effective speech.
+Here we focus on a minimal annotation of Presentation MathML that could resolve
+the inherent ambiguities and facilitate more useful accessibility.
+The focus is not necessarily to achieve the precision necessary for computation.
 
 <!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
 ## Proposal
 We propose an attribute, tentatively called "intent",
-which describes the semantic tree of a Presentation MathML fragment
+which describes the semantic intent of a Presentation MathML fragment
+(the node on which the attribute is given)
 using a simple prefix notation. This mechanism provides for recursively
-describing the operator and arguments, as well as ascribing a fixed semantics
-to entire subtrees.  The main components are literals, for giving an explicit fixed
-"meaning", and selectors for referring to the semantic of a child node.
+describing the operator and arguments, as well as ascribing a fixed intent
+to entire subtrees.
 The mini-language is specified as follows:
 
 ```
-semantic ::=
-             selector
-           | literal
-           | semantic '(' semantic [ ',' semantic ]* ')'
-
+intent   ::= literal | selector | intent '(' intent [ ',' intent ]* ')'
 literal  ::= [letters|digits|_|-]+
-selector ::= argref
+selector ::= argref | argpath
 argref   ::= '$' NCName
+argpath  ::= '$' [digit]+ [ '/' [digit]+ ]*
 ```
-<!-- path | idref | ...
-path    ::= '$' [digit]+ | path/path
-idref   ::= '$' NCName
-```
--->
-[The syntactic details, and whether alternative selectors are needed, is up for debate.]
 
-The literals are intended to correspond to some mathematical concept
+where the grammar components have the following significance:
+* the third form of intent represents some operation applied to arguments.
+* literal: represents a mathematical concept, being
+a literal keyword (to be looked up in a to-be-specified dictionary),
+or a phrase to be spoken as-is (possibly translated, as needed) if not present in the dictionary.
+In the latter case, hyphens and underscores are treated as spaces.
+The set of literals is intentionally open-ended.
+* selector: selects another node whose intent is used in-place-of or as part-of the composed intent.
+* argref: refers to the intent of another node,
+being the child of the current node with attribute `arg` having the given `NCName`
+(or possibly any node in the document with the `NCName` as `id`).
+* argpath: refers to the intent of a descendant of the current node;
+ for example, a single component such as `$2` refers to the 2nd child;
+ multiple components refer to grandchildren or deeper,
+ `$1/1` would refer to the first grandchild.
+
+The key component here is the literal;
+they are intended to correspond to some mathematical concept
 or operator, or some application specific quantity or operation;
 that is it represents some "meaning".
 Ultimately, the goal is to *translate* this virtual content tree into
 text or speech (in different languages), braille or some other form.
 The preferred translation may also depend on context and user profile.
 On the one hand, the most natural translation of a given expression
-will depend on the operator.  It is thus desirable to have a set of
-known meaning with translation rules.
+can depend on the operator.  It is thus desirable to have a set of
+common known meaning with translation rules.
+Thus `power(x,2)` might be rendered as "the 2nd power of x" or "x squared",
+depending on the user and agent.
+
 On the other hand, mathematics encompasses an endless set of concepts,
-arguing that the set of meanings should be open-ended.
+arguing that the set of meanings must be open-ended.
 We propose that there should be a small set of recommended meaning keywords
 whose translation can be specialized, while allowing any value for the meaning
 (an implementation is free to recognize more keywords).
-In the case where a meaning is *not* known, support for multiple languages
-or user profiles would likely be lost;
-the translation of content token should simply be the literal itself,
-or in general a template like "the [meaning] of [arg1], [arg2] and [argn] ...".
-
-A variety of mechanisms are available for selectors, each with
-significant strengths and weaknesses:
-* path: a relative path to a child; often concise, but requires accounting for
-  every element between the parent and descendent inluding mrows, mstyle, etc;
-  it is thus brittle to small changes in markup.
-* id: clearer and easier to read, but must be globally unique in the document
-
-The group concensus is currently leaning towards the `argref` style of selector. An argref is like
-an idref, but unlike `xml:id` which must be globally unique (i.e. within the entire document),
-an argument identifier, supplied by the `arg` attribute,
-is scoped by elements with the `intent` attribute.
-That is, an `arg` attribute is visible only to the nearest ancestor with a `intent`
-attribute, and therefore need not be unique to the document, nor even within a given
-`m:math` element.  The downside of this method is that when resolving a `intent` attribute,
-a bit of special code is needed to find the arguments.  For example to find an argument
-with identifier `arg1`, something like the following XPath could be used:
-```
-.//@arg[.='arg`'] except .//*[@notation]/*//@arg
-```
-
-In any case, author supplied annotation has simplified the task by
-isolating the operator and arguments of subexpressions, (mostly?) eliminating
-the need to pattern match on the presentation tree.
+In the case where a meaning is *not* in a dictionary,
+support for multiple languages may be weak and
+the application of such a literal would be generic
+as "the [meaning] of [arg1], [arg2] and [argn] ...".
+While this result may be less than optimal, it is still functional.
 
 <!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
 ## Some Examples
 
-With this model, the two ```msup``` examples, power $x^n$ and transpose $A^T$,
+### Same notation, different meanings
+
+With this model, the `msup` examples:
+$x^n$ as a power;
+$A^T$ as a transpose;
+$f'$ as a derivative;
+and $x'$ as an embellished symbol
 would be distinguished as follows:
 ```
 <msup intent="power($base,$exp)">
@@ -142,39 +142,31 @@ would be distinguished as follows:
 </msup>
 ```
 
-The translation could be of various
-forms including "the n-th power of x", or "x squared" for $x^2$.
-The transpose example would be marked up as
 ```
 <msup intent="$op($a)">
   <mi arg="a">A</mi>
   <mi arg="op" intent="transpose">T</mi>
 </msup>
 ```
-which is easily extended to cover conjugate and adjoint.
-Or even
+(easily adapted to conjugate and adjoint)
+
 ```
-<msup intent="$op($a)">
-  <mi arg="a">A</mi>
-  <mi arg="op" intent="Tralfamadorian inverse">T</mi>
+<msup intent="derivative($a)">
+  <mi arg="a">f</mi>
+  <mi>'</mi>
 </msup>
 ```
-which could be translated as "the Tralfamadorian inverse of A",
-without needing any additional dictionary entries.
-Likewise,
+
 ```
-<msup intent="frobulator">
+<msup intent="x-prime">
   <mi>x</mi>
   <mo>'</mo>
 </msup>
 ```
-would be used for a composite symbol $x'$ which stands for the frobulator;
-the translation would simply be "frobulator".
 
-Given that notations can use literals, paths and ids to specify
-the semantics of the operator and arguments,
-there are several ways that a given expression could be annotated.
-The transpose could be
+### Selectors
+
+Use of selectors allow different ways to express the same result, such as:
 ```
 <msup intent="transpose(A)">
   <mi>A</mi>
@@ -193,8 +185,17 @@ The transpose could be
   <mi arg="mop" intent="transpose">T</mi>
 </msup>
 ```
-and so on; the latter, fine-grained, form gives the user agent
+```
+<msup intent="transpose($1)">
+  <mi>A</mi>
+  <mi>T</mi>
+</msup>
+```
+At one extreme, one could simply encode the entire intent on the `math` element.
+However, liberal use of selectors presumably would give the user agent
 more leeway for highlighting, navigation, etc.
+
+### Different notations, same meaning
 
 A binomial would be marked up as:
 ```
@@ -207,9 +208,8 @@ A binomial would be marked up as:
   <mo>)</mo>
 </mrow>
 ```
-This pattern covers Eulerian numbers, Jacobi and Legendre symbols.
-Conversely, it  still allows alternate notations for binomials while keeping the same
-semantics, since we can write:
+However, other notations for binomial are in use, such as:
+
 ```
 <msubsup intent="$op($n,$m)">
   <mi arg="op" intent="binomial">C</mi>
@@ -228,6 +228,8 @@ Or as some would prefer
 Each of the above binomials have the same semantic content,
 and (presumably) would generate the same translation.
 
+### mrow structure
+
 A row of infix with multiple operators may seem to be a special case,
 depending on how `mrow` is used, but basically it forces the annotator
 to specify the exact nesting and precedence of operators:
@@ -242,7 +244,7 @@ to specify the exact nesting and precedence of operators:
   <mi arg="d">d</mi>
 </mrow>
 ```
-Such expressions can be annotated whether the presentation
+Such expressions can be annotated whether the markup
 is rich or poor in `mrow`s; one only has to annotate at the appropriate
 level in the tree.
 
@@ -257,7 +259,7 @@ within an ```mrow```:
   <mo arg="op" intent="factorial">!</mo>
 </mrow>
 ```
-A little less simple if they are not
+A little less simple, but still possible, if they are not
 ```
 <mrow intent="$p($a,$f($b))">
   <mi arg="a">a</mi>
@@ -268,18 +270,52 @@ A little less simple if they are not
 ```
 
 <!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
-## Notation Catalog
+## Defaulting
+"Defaulting" is based on the idea that certain notations
+are almost always used for the same purpose in a given subject area,
+and that therefore an author ought not need to tediously annotate every single instance;
+the system should recognize the usage pattern an generate the intent annotation itself.
+This document does not directly address the subject of defaulting,
+although the intent model presented here may very well serve as the
+target language for a defaulting preprocessor (or processing phase).
 
-In the case of argument selectors being relative paths,
-a collection of common shorthands could be collected
-as named notations.
-With `xml:id`s or even `argid`s, this is not so clearly feasible.
-
-We defer this, for now.
+However, the possibility of a defaulting process does have implications
+for how one should annotate.  A node without an explicitly given intent would likely
+be a candidate for a default intent based on some rule set.
+In a field where a prime is commonly used to denote derivatives,
+the annotator must make sure to mark those primes that do *not* denote
+derivatives, such as the $x'$ example above.
 
 <!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
-## Examples of notations
-Note that often the same meaning will appear within different notations.
+## Summary
+We have proposed a simple intent attribute to annotate Presentation MathML
+with disambiguating information that can be used to support accessibility.
+The design is open-ended.  Further topics that will need to be addressed are:
+* dictionary: being a catalog of common semantic concepts with special requirements
+for quality speech;
+* defaulting: a mechanism to automatically generate intent annotation based on subject area.
+
+
+<!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
+## Appendix: Examples of notations
+This section demonstrates how various awkward constructs might be annotated.
+
+The literals used below are for illustrative purposes only, and are *not* the final proposal.
+Choosing such literals must be done in the context of some dictionary of standard keywords.
+Ultimately, we will need naming conventions that would yield sensible dictionary keywords
+while providing natural readings for concepts *not* in the dictionary.
+Indeed, these two concerns may be in conflict.
+
+Derivatives are an interesting case;
+certainly common and important enough to be in the dictionary.
+But there are many subcases:
+the variable of differentiation is sometimes implied (eg. when primes are used);
+the degree should default to 1;
+the differentiation may be over multiple variables.
+The functional notation for intent proposed here suggests positional arguments to a
+`derivative` literal, so that for example `derivative(f,,n)`
+would stand for the $n$th derivative of $f$ with respect to an implied variable.
+Undoubtedly, some will dislike this approach.
 
 <!-- ======================================================================
   Big problems laying out tables. The goal is to embed multi-line quoted code
@@ -327,7 +363,7 @@ Note that often the same meaning will appear within different notations.
 {:/nomarkdown}
 ```
 <mrow intent="$op($arg)">
-  <mo arg="op" intent="unary-minus">-</mo>
+  <mo arg="op" intent="negative">-</mo>
   <mi arg="arg">a</mi>`
 </mrow>
 ```
@@ -395,7 +431,7 @@ Note that often the same meaning will appear within different notations.
 <tr><td> </td><td> $n$-th derivative $f^{(n)}$ </td><td>
 {:/nomarkdown}
 ```
-<msup intent="derivative-implicit-variable($op,$n)">
+<msup intent="derivative($op,,$n)">
   <mi arg="op">f</mi>
   <mrow>
     <mo>(</mo>
@@ -410,7 +446,7 @@ Note that often the same meaning will appear within different notations.
 <tr><td> sub </td><td> indexing $a_i$ </td><td>
 {:/nomarkdown}
 ```
-<msup intent="index($array,$index)">
+<msup intent="component($array,$index)">
   <mi arg="array">a</mi>
   <mi arg="index">i</mi>
 </msup>
@@ -463,7 +499,7 @@ Note that often the same meaning will appear within different notations.
 <tr><td> </td><td> $2$-nd derivative $f''$ </td><td>
 {:/nomarkdown}
 ```
-<msup intent="derivative-implicit-variable($op,$n)">
+<msup intent="derivative($op,,$n)">
   <mi arg="op">f</mi>
   <mo arg="n" intent="2">''</mo>
 </msup>
@@ -473,7 +509,7 @@ Note that often the same meaning will appear within different notations.
 <tr><td>Awkward nesting</td><td> $x'_i$ </td><td>
 {:/nomarkdown}
 ```
- <msubsup intent="derivative-implicit-variable(index($array,$index))">
+ <msubsup intent="derivative(component($array,$index))">
    <mi arg="array">x</mi>
    <mi arg="index">i</mi>
    <mo>'</mo>
@@ -484,7 +520,7 @@ Note that often the same meaning will appear within different notations.
 <tr><td></td><td> or maybe</td><td>
 {:/nomarkdown}
 ```
- <msubsup intent="index(derivative-implicit-variable($op),$index)">
+ <msubsup intent="component(derivative($op),$index)">
    <mi arg="op">x</mi>
    <mi arg="index">i</mi>
    <mo>'</mo>
@@ -496,7 +532,7 @@ Note that often the same meaning will appear within different notations.
 <td>
 {:/nomarkdown}
 ```
- <msub intent="$op(index($line,$index))">
+ <msub intent="$op(component($line,$index))">
     <mover accent="true">
       <mi arg="line">x</mi>
       <mo arg="op" intent="midpoint">¯</mo>
@@ -511,7 +547,7 @@ Note that often the same meaning will appear within different notations.
 <td>
 {:/nomarkdown}
 ```
- <msub intent="index($arr,$index)">
+ <msub intent="component($arr,$index)">
     <mover arg="arr" accent="true" intent="$op($line)>
       <mi arg="line">x</mi>
       <mo arg="op" intent="midpoint">¯</mo>
@@ -524,7 +560,7 @@ Note that often the same meaning will appear within different notations.
 </tr>
 
 <!-- ======================================== -->
-<tr><td> base-operator </td><td> binomail $C^n_m$ </td><td>
+<tr><td> base-operator </td><td> binomial $C^n_m$ </td><td>
 {:/nomarkdown}
 ```
 <msubsup intent="$op($n,$m)">
@@ -825,9 +861,9 @@ Note that often the same meaning will appear within different notations.
 <!-- ======================================== -->
 <tr><td>derivatives</td><td> $\frac{d^2f}{dx^2}$</td><td>
 {:/nomarkdown}
-<!-- <mfrac intent="Leibnitz-derivative($1/2,$2/1/2,$1/1/2)"> -->
+<!-- <mfrac intent="derivative($1/2,$2/1/2,$1/1/2)"> -->
 ```
-<mfrac intent="Leibnitz-derivative($func,$var,$deg)">
+<mfrac intent="derivative($func,$var,$deg)">
   <mrow>
     <msup>
       <mo>d</mo>
@@ -899,22 +935,5 @@ Note that often the same meaning will appear within different notations.
 </tbody>
 </table>
 {:/nomarkdown}
-
-<!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
-## The Bad and the Ugly
-It would seem that quite complex notations can be marked up,
-but the paths to components can be difficult to write by hand;
-presumably not difficult by machine.
-
-Note that this proposal generally avoids the need for wrapping
-subexpressions in `mrow`s: the paths to arguments become longer if they are
-used; more opaque if they are not.
-
-<!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
-## Summary
-This idea has a lot of detail to be worked out, including at least
-* syntax;
-* awkwardness of long paths versus global character of ids
-* defaults
 
 <!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
