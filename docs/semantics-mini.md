@@ -89,6 +89,7 @@ where the grammar components have the following significance:
 * literal: represents a mathematical concept, being
 a literal keyword (to be looked up in a to-be-specified dictionary),
 or a phrase to be spoken as-is (possibly translated, as needed) if not present in the dictionary.
+In the latter case, hyphens and underscores are treated as spaces.
 The set of literals is intentionally open-ended.
 * selector: selects another node whose intent is used in-place-of or as part-of the composed intent.
 * argref: refers to the intent of another node,
@@ -297,7 +298,24 @@ for quality speech;
 
 <!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
 ## Appendix: Examples of notations
-Note that often the same meaning will appear within different notations.
+This section demonstrates how various awkward constructs might be annotated.
+
+The literals used below are for illustrative purposes only, and are *not* the final proposal.
+Choosing such literals must be done in the context of some dictionary of standard keywords.
+Ultimately, we will need naming conventions that would yield sensible dictionary keywords
+while providing natural readings for concepts *not* in the dictionary.
+Indeed, these two concerns may be in conflict.
+
+Derivatives are an interesting case;
+certainly common and important enough to be in the dictionary.
+But there are many subcases:
+the variable of differentiation is sometimes implied (eg. when primes are used);
+the degree should default to 1;
+the differentiation may be over multiple variables.
+The functional notation for intent proposed here suggests positional arguments to a
+`derivative` literal, so that for example `derivative(f,,n)`
+would stand for the $n$th derivative of $f$ with respect to an implied variable.
+Undoubtedly, some will dislike this approach.
 
 <!-- ======================================================================
   Big problems laying out tables. The goal is to embed multi-line quoted code
@@ -345,7 +363,7 @@ Note that often the same meaning will appear within different notations.
 {:/nomarkdown}
 ```
 <mrow intent="$op($arg)">
-  <mo arg="op" intent="unary-minus">-</mo>
+  <mo arg="op" intent="negative">-</mo>
   <mi arg="arg">a</mi>`
 </mrow>
 ```
@@ -413,7 +431,7 @@ Note that often the same meaning will appear within different notations.
 <tr><td> </td><td> $n$-th derivative $f^{(n)}$ </td><td>
 {:/nomarkdown}
 ```
-<msup intent="derivative-implicit-variable($op,$n)">
+<msup intent="derivative($op,,$n)">
   <mi arg="op">f</mi>
   <mrow>
     <mo>(</mo>
@@ -428,7 +446,7 @@ Note that often the same meaning will appear within different notations.
 <tr><td> sub </td><td> indexing $a_i$ </td><td>
 {:/nomarkdown}
 ```
-<msup intent="index($array,$index)">
+<msup intent="component($array,$index)">
   <mi arg="array">a</mi>
   <mi arg="index">i</mi>
 </msup>
@@ -481,7 +499,7 @@ Note that often the same meaning will appear within different notations.
 <tr><td> </td><td> $2$-nd derivative $f''$ </td><td>
 {:/nomarkdown}
 ```
-<msup intent="derivative-implicit-variable($op,$n)">
+<msup intent="derivative($op,,$n)">
   <mi arg="op">f</mi>
   <mo arg="n" intent="2">''</mo>
 </msup>
@@ -491,7 +509,7 @@ Note that often the same meaning will appear within different notations.
 <tr><td>Awkward nesting</td><td> $x'_i$ </td><td>
 {:/nomarkdown}
 ```
- <msubsup intent="derivative-implicit-variable(index($array,$index))">
+ <msubsup intent="derivative(component($array,$index))">
    <mi arg="array">x</mi>
    <mi arg="index">i</mi>
    <mo>'</mo>
@@ -502,7 +520,7 @@ Note that often the same meaning will appear within different notations.
 <tr><td></td><td> or maybe</td><td>
 {:/nomarkdown}
 ```
- <msubsup intent="index(derivative-implicit-variable($op),$index)">
+ <msubsup intent="component(derivative($op),$index)">
    <mi arg="op">x</mi>
    <mi arg="index">i</mi>
    <mo>'</mo>
@@ -514,7 +532,7 @@ Note that often the same meaning will appear within different notations.
 <td>
 {:/nomarkdown}
 ```
- <msub intent="$op(index($line,$index))">
+ <msub intent="$op(component($line,$index))">
     <mover accent="true">
       <mi arg="line">x</mi>
       <mo arg="op" intent="midpoint">¯</mo>
@@ -529,7 +547,7 @@ Note that often the same meaning will appear within different notations.
 <td>
 {:/nomarkdown}
 ```
- <msub intent="index($arr,$index)">
+ <msub intent="component($arr,$index)">
     <mover arg="arr" accent="true" intent="$op($line)>
       <mi arg="line">x</mi>
       <mo arg="op" intent="midpoint">¯</mo>
@@ -542,7 +560,7 @@ Note that often the same meaning will appear within different notations.
 </tr>
 
 <!-- ======================================== -->
-<tr><td> base-operator </td><td> binomail $C^n_m$ </td><td>
+<tr><td> base-operator </td><td> binomial $C^n_m$ </td><td>
 {:/nomarkdown}
 ```
 <msubsup intent="$op($n,$m)">
@@ -843,9 +861,9 @@ Note that often the same meaning will appear within different notations.
 <!-- ======================================== -->
 <tr><td>derivatives</td><td> $\frac{d^2f}{dx^2}$</td><td>
 {:/nomarkdown}
-<!-- <mfrac intent="Leibnitz-derivative($1/2,$2/1/2,$1/1/2)"> -->
+<!-- <mfrac intent="derivative($1/2,$2/1/2,$1/1/2)"> -->
 ```
-<mfrac intent="Leibnitz-derivative($func,$var,$deg)">
+<mfrac intent="derivative($func,$var,$deg)">
   <mrow>
     <msup>
       <mo>d</mo>
